@@ -6,9 +6,9 @@ export interface Achievement {
   name: string
   description: string
   emoji: string
-  category: 'sessions' | 'points' | 'streaks' | 'time' | 'topics'
+  category: 'sessions' | 'points' | 'streaks' | 'time'
   requirement: number
-  requirementType: 'totalSessions' | 'totalPoints' | 'currentStreak' | 'totalMinutes' | 'topicsExplored'
+  requirementType: 'totalSessions' | 'totalPoints' | 'currentStreak' | 'totalMinutes'
 }
 
 /**

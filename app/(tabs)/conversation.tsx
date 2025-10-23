@@ -147,12 +147,11 @@ export default function ConversationScreen() {
   async function connectToOpenAI(token: string) {
     return new Promise<void>((resolve, reject) => {
       try {
-        const ws = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'OpenAI-Beta': 'realtime=v1',
-          },
-        })
+        // Note: React Native WebSocket constructor only takes URL and optional protocols
+        // The token from backend already has auth configured for OpenAI
+        const ws = new WebSocket(
+          `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`
+        )
 
         ws.onopen = () => {
           console.log('WebSocket connected')

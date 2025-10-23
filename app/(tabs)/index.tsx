@@ -85,10 +85,8 @@ export default function HomeScreen() {
   }
 
   async function handleGoalChange() {
-    Alert.alert(
-      'Change Weekly Goal',
-      'Choose your commitment level:',
-      GOAL_PRESETS.map((preset) => ({
+    const buttons = [
+      ...GOAL_PRESETS.map((preset) => ({
         text: `${preset.emoji} ${preset.name} - ${preset.sessions} sessions/week`,
         onPress: async () => {
           const newGoals = {
@@ -100,8 +98,10 @@ export default function HomeScreen() {
           await AsyncStorage.setItem('weekly_goals', JSON.stringify(newGoals))
           Alert.alert('Goal Updated!', `You're now aiming for ${preset.name} mode.`)
         },
-      })).concat([{ text: 'Cancel', style: 'cancel' }])
-    )
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]
+    Alert.alert('Change Weekly Goal', 'Choose your commitment level:', buttons)
   }
 
   function formatDate(dateString: string) {
