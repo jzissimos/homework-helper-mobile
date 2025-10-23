@@ -24,6 +24,7 @@ import {
   isInCurrentWeek,
   getDaysRemainingInWeek,
 } from '../../src/constants/goals'
+import { getQuoteOfTheDay, getTipOfTheDay } from '../../src/constants/quotes'
 
 export default function HomeScreen() {
   const { user, refreshUser } = useAuth()
@@ -32,6 +33,8 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [weeklyGoals, setWeeklyGoals] = useState({ sessions: 5, minutes: 60, points: 120 })
   const [weekStats, setWeekStats] = useState({ sessions: 0, minutes: 0, points: 0 })
+  const [quoteOfDay] = useState(getQuoteOfTheDay())
+  const [tipOfDay] = useState(getTipOfTheDay())
 
   useEffect(() => {
     loadData()
@@ -145,6 +148,21 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/topic-select')}
           variant="primary"
         />
+      </View>
+
+      {/* Quote and Tip of the Day */}
+      <View style={styles.section}>
+        <Card variant="outlined" style={styles.quoteCard}>
+          <Text style={styles.quoteEmoji}>{quoteOfDay.emoji}</Text>
+          <Text style={styles.quoteText}>"{quoteOfDay.text}"</Text>
+          {quoteOfDay.author && (
+            <Text style={styles.quoteAuthor}>- {quoteOfDay.author}</Text>
+          )}
+        </Card>
+
+        <Card variant="outlined" style={styles.tipCard}>
+          <Text style={styles.tipText}>{tipOfDay}</Text>
+        </Card>
       </View>
 
       {/* Weekly Goals */}
@@ -407,6 +425,38 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: colors.primary,
     borderRadius: 4,
+  },
+  quoteCard: {
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: colors.primary + '08',
+  },
+  quoteEmoji: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  quoteText: {
+    fontSize: 16,
+    color: colors.text,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  quoteAuthor: {
+    fontSize: 14,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  tipCard: {
+    padding: 16,
+    backgroundColor: colors.success + '08',
+  },
+  tipText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   emptyState: {
     backgroundColor: colors.surface,

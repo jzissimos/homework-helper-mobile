@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../src/contexts/AuthContext'
 import { api } from '../../src/services/api'
 import { Button } from '../../src/components/Button'
+import { ConfettiCelebration } from '../../src/components/ConfettiCelebration'
 import { colors } from '../../src/theme/colors'
 import { getTopicById } from '../../src/constants/topics'
 
@@ -29,6 +30,7 @@ export default function ConversationScreen() {
   const [sessionToken, setSessionToken] = useState<string | null>(null)
   const [duration, setDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   // WebSocket and audio refs
   const wsRef = useRef<WebSocket | null>(null)
@@ -247,22 +249,29 @@ export default function ConversationScreen() {
         })
       }
 
-      Alert.alert(
-        'Session Complete!',
-        `Great work! You earned ${Math.max(1, Math.floor(durationMinutes * 2))} points.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setState('idle')
-              setDuration(0)
-              setConversationId(null)
-              setSessionToken(null)
-              router.push('/(tabs)')
+      // Show celebration confetti!
+      setShowConfetti(true)
+
+      // Small delay to let confetti start before showing alert
+      setTimeout(() => {
+        Alert.alert(
+          'Session Complete!',
+          `Great work! You earned ${Math.max(1, Math.floor(durationMinutes * 2))} points.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setState('idle')
+                setDuration(0)
+                setConversationId(null)
+                setSessionToken(null)
+                setShowConfetti(false)
+                router.push('/(tabs)')
+              },
             },
-          },
-        ]
-      )
+          ]
+        )
+      }, 300)
     } catch (error: any) {
       console.error('Failed to end session:', error)
       Alert.alert('Error', 'Failed to save session. Please try again.')
@@ -278,6 +287,9 @@ export default function ConversationScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Confetti Celebration */}
+      <ConfettiCelebration show={showConfetti} />
+
       {/* Status Header */}
       <View style={styles.header}>
         {topic && (
