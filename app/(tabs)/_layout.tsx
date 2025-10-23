@@ -29,10 +29,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="topic-select"
+        options={{
+          title: 'Choose Topic',
+          tabBarLabel: 'Topics',
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
         name="conversation"
         options={{
           title: 'Learning Session',
           tabBarLabel: 'Learn',
+          href: null, // Hide from tab bar - access via topic-select
         }}
       />
       <Tabs.Screen

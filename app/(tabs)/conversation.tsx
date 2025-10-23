@@ -9,16 +9,21 @@ import {
   Animated,
 } from 'react-native'
 import { Audio } from 'expo-av'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../src/contexts/AuthContext'
 import { api } from '../../src/services/api'
 import { Button } from '../../src/components/Button'
 import { colors } from '../../src/theme/colors'
+import { getTopicById } from '../../src/constants/topics'
 
 type SessionState = 'idle' | 'connecting' | 'connected' | 'speaking' | 'ending'
 
 export default function ConversationScreen() {
   const { user } = useAuth()
+  const params = useLocalSearchParams()
+  const topicId = params.topic as string
+  const topic = topicId ? getTopicById(topicId) : null
+
   const [state, setState] = useState<SessionState>('idle')
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [sessionToken, setSessionToken] = useState<string | null>(null)
@@ -217,6 +222,7 @@ export default function ConversationScreen() {
       if (conversationId) {
         await api.endConversation(conversationId, {
           durationMinutes,
+          topic: topic ? topic.name : 'General',
           pointsEarned: Math.max(1, Math.floor(durationMinutes * 2)), // 2 points per minute
         })
       }
@@ -254,6 +260,12 @@ export default function ConversationScreen() {
     <View style={styles.container}>
       {/* Status Header */}
       <View style={styles.header}>
+        {topic && (
+          <View style={styles.topicBadge}>
+            <Text style={styles.topicEmoji}>{topic.emoji}</Text>
+            <Text style={styles.topicName}>{topic.name}</Text>
+          </View>
+        )}
         <Text style={styles.title}>
           {state === 'idle' && 'Ready to Learn'}
           {state === 'connecting' && 'Connecting...'}
@@ -339,6 +351,24 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 48,
+  },
+  topicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  topicEmoji: {
+    fontSize: 20,
+  },
+  topicName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
   },
   title: {
     fontSize: 24,

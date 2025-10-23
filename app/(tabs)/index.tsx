@@ -86,7 +86,7 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <Button
           title="🎓 Start Learning"
-          onPress={() => router.push('/(tabs)/conversation')}
+          onPress={() => router.push('/(tabs)/topic-select')}
           variant="primary"
         />
       </View>
