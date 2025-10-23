@@ -1,11 +1,14 @@
-// Root Layout - Wraps entire app with AuthProvider
+// Root Layout - Wraps entire app with AuthProvider and ErrorBoundary
 import { Slot } from 'expo-router'
 import { AuthProvider } from '../src/contexts/AuthContext'
+import { ErrorBoundary } from '../src/components/ErrorBoundary'
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <Slot />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
