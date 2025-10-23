@@ -35,8 +35,10 @@ export default function ConversationScreen() {
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<Date | null>(null)
 
-  // Animation for pulsing effect
+  // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current
+  const fadeAnim = useRef(new Animated.Value(1)).current
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
     // Request microphone permissions on mount
@@ -54,8 +56,9 @@ export default function ConversationScreen() {
   }, [])
 
   useEffect(() => {
-    // Pulse animation when connected/speaking
+    // Animate state transitions
     if (state === 'connected' || state === 'speaking') {
+      // Pulse animation for active states
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -70,9 +73,26 @@ export default function ConversationScreen() {
           }),
         ])
       ).start()
+
+      // Fade in effect
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start()
     } else {
       pulseAnim.setValue(1)
+      fadeAnim.setValue(0.7)
     }
+
+    // Scale animation on state change
+    scaleAnim.setValue(0.9)
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start()
   }, [state])
 
   async function requestAudioPermissions() {
@@ -281,25 +301,70 @@ export default function ConversationScreen() {
       {/* Visual Indicator */}
       <View style={styles.visualContainer}>
         {state === 'connecting' || state === 'ending' ? (
-          <ActivityIndicator size="large" color={colors.primary} />
-        ) : state === 'idle' ? (
-          <View style={styles.idleCircle}>
-            <Text style={styles.idleIcon}>🎓</Text>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>
+              {state === 'connecting' ? 'Connecting to AI Tutor...' : 'Saving your progress...'}
+            </Text>
           </View>
-        ) : (
+        ) : state === 'idle' ? (
           <Animated.View
             style={[
-              styles.activeCircle,
-              {
-                transform: [{ scale: pulseAnim }],
-                backgroundColor: state === 'speaking' ? colors.secondary : colors.primary,
-              },
+              styles.idleCircle,
+              { transform: [{ scale: scaleAnim }] }
             ]}
           >
-            <Text style={styles.activeIcon}>
-              {state === 'speaking' ? '🗣️' : '👂'}
-            </Text>
+            <Text style={styles.idleIcon}>🎓</Text>
           </Animated.View>
+        ) : (
+          <View style={styles.activeContainer}>
+            {/* Outer glow rings */}
+            <Animated.View
+              style={[
+                styles.glowRing,
+                styles.glowRingOuter,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: pulseAnim }],
+                  borderColor: state === 'speaking' ? colors.secondary : colors.primary,
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.glowRing,
+                styles.glowRingMiddle,
+                {
+                  opacity: fadeAnim.interpolate({
+                    inputRange: [0.7, 1],
+                    outputRange: [0.3, 0.6],
+                  }),
+                  transform: [{
+                    scale: pulseAnim.interpolate({
+                      inputRange: [1, 1.2],
+                      outputRange: [1, 1.15],
+                    })
+                  }],
+                  borderColor: state === 'speaking' ? colors.secondary : colors.primary,
+                },
+              ]}
+            />
+            {/* Main circle */}
+            <Animated.View
+              style={[
+                styles.activeCircle,
+                {
+                  transform: [{ scale: scaleAnim }],
+                  backgroundColor: state === 'speaking' ? colors.secondary : colors.primary,
+                  opacity: fadeAnim,
+                },
+              ]}
+            >
+              <Text style={styles.activeIcon}>
+                {state === 'speaking' ? '🗣️' : '👂'}
+              </Text>
+            </Animated.View>
+          </View>
         )}
       </View>
 
@@ -386,6 +451,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  loadingContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textLight,
+    marginTop: 8,
+  },
   idleCircle: {
     width: 200,
     height: 200,
@@ -399,12 +473,36 @@ const styles = StyleSheet.create({
   idleIcon: {
     fontSize: 80,
   },
+  activeContainer: {
+    width: 280,
+    height: 280,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowRing: {
+    position: 'absolute',
+    borderRadius: 1000,
+    borderWidth: 2,
+  },
+  glowRingOuter: {
+    width: 280,
+    height: 280,
+  },
+  glowRingMiddle: {
+    width: 240,
+    height: 240,
+  },
   activeCircle: {
     width: 200,
     height: 200,
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   activeIcon: {
     fontSize: 80,
