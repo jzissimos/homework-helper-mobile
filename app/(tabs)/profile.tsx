@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native'
 import { router } from 'expo-router'
+import { Audio } from 'expo-av'
 import { useAuth } from '../../src/contexts/AuthContext'
 import { api, Voice } from '../../src/services/api'
 import { Button } from '../../src/components/Button'
@@ -20,10 +21,18 @@ export default function ProfileScreen() {
   const [voices, setVoices] = useState<Voice[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null)
+  const [sound, setSound] = useState<Audio.Sound | null>(null)
 
   useEffect(() => {
     loadVoices()
-  }, [])
+    return () => {
+      // Clean up sound on unmount
+      if (sound) {
+        sound.unloadAsync()
+      }
+    }
+  }, [sound])
 
   async function loadVoices() {
     try {
@@ -46,6 +55,54 @@ export default function ProfileScreen() {
       Alert.alert('Error', error.message)
     } finally {
       setUpdating(false)
+    }
+  }
+
+  async function previewVoice(voice: Voice) {
+    try {
+      // Stop any currently playing sound
+      if (sound) {
+        await sound.stopAsync()
+        await sound.unloadAsync()
+        setSound(null)
+      }
+
+      // If clicking the same voice that's playing, just stop it
+      if (playingVoice === voice.id) {
+        setPlayingVoice(null)
+        return
+      }
+
+      setPlayingVoice(voice.id)
+
+      // Set audio mode
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      })
+
+      // Use text-to-speech for preview (since we don't have OpenAI audio samples)
+      // In a real implementation, you'd fetch actual audio samples from OpenAI or your backend
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        // For now, we'll use the device's text-to-speech or show a message
+        // This is a placeholder - in production you'd have pre-recorded samples
+        { uri: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=' },
+        { shouldPlay: false }
+      )
+
+      // Since we can't easily generate real voice samples without OpenAI,
+      // let's just show a message with the sample text
+      setPlayingVoice(null)
+      Alert.alert(
+        `${voice.name} Voice Preview`,
+        `Sample: "${voice.sampleText}"\n\nThis voice is ${voice.description.toLowerCase()}.`,
+        [{ text: 'Got it', style: 'default' }]
+      )
+
+    } catch (error) {
+      console.error('Preview error:', error)
+      Alert.alert('Preview Unavailable', 'Voice preview is coming soon!')
+      setPlayingVoice(null)
     }
   }
 
@@ -106,37 +163,51 @@ export default function ProfileScreen() {
         <View style={styles.voiceList}>
           {voices.map((voice) => {
             const isSelected = voice.id === user?.selectedVoice
+            const isPreviewing = playingVoice === voice.id
             return (
-              <TouchableOpacity
-                key={voice.id}
-                style={[
-                  styles.voiceCard,
-                  isSelected && styles.voiceCardSelected,
-                ]}
-                onPress={() => selectVoice(voice.id)}
-                disabled={updating}
-              >
-                <View style={styles.voiceHeader}>
-                  <Text
-                    style={[
-                      styles.voiceName,
-                      isSelected && styles.voiceNameSelected,
-                    ]}
-                  >
-                    {voice.name}
+              <View key={voice.id} style={styles.voiceContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.voiceCard,
+                    isSelected && styles.voiceCardSelected,
+                  ]}
+                  onPress={() => selectVoice(voice.id)}
+                  disabled={updating}
+                >
+                  <View style={styles.voiceHeader}>
+                    <Text
+                      style={[
+                        styles.voiceName,
+                        isSelected && styles.voiceNameSelected,
+                      ]}
+                    >
+                      {voice.name}
+                    </Text>
+                    {isSelected && (
+                      <View style={styles.selectedBadge}>
+                        <Text style={styles.selectedBadgeText}>✓</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.voiceDescription}>{voice.description}</Text>
+                  <Text style={styles.voicePersonality}>
+                    {voice.personality}
                   </Text>
-                  {isSelected && (
-                    <View style={styles.selectedBadge}>
-                      <Text style={styles.selectedBadgeText}>✓</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.voiceDescription}>{voice.description}</Text>
-                <Text style={styles.voicePersonality}>
-                  {voice.personality}
-                </Text>
-                <Text style={styles.voiceAgeRange}>Ages {voice.ageRange}</Text>
-              </TouchableOpacity>
+                  <Text style={styles.voiceAgeRange}>Ages {voice.ageRange}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.previewButton,
+                    isPreviewing && styles.previewButtonActive,
+                  ]}
+                  onPress={() => previewVoice(voice)}
+                  disabled={updating}
+                >
+                  <Text style={styles.previewButtonText}>
+                    {isPreviewing ? '🔊 Playing' : '▶️ Preview'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )
           })}
         </View>
@@ -230,6 +301,10 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
   },
+  voiceContainer: {
+    width: '100%',
+    gap: 8,
+  },
   voiceCard: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -282,5 +357,21 @@ const styles = StyleSheet.create({
   voiceAgeRange: {
     fontSize: 12,
     color: colors.textMuted,
+  },
+  previewButton: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  previewButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  previewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
 })

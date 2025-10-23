@@ -12,6 +12,11 @@ import { useAuth } from '../../src/contexts/AuthContext'
 import { api, Conversation } from '../../src/services/api'
 import { Card } from '../../src/components/Card'
 import { colors } from '../../src/theme/colors'
+import {
+  Achievement,
+  calculateEarnedAchievements,
+  getNextAchievements,
+} from '../../src/constants/achievements'
 
 interface Stats {
   totalSessions: number
@@ -30,6 +35,8 @@ export default function StatsScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
+  const [earnedAchievements, setEarnedAchievements] = useState<Achievement[]>([])
+  const [nextAchievements, setNextAchievements] = useState<any[]>([])
 
   useEffect(() => {
     loadStats()
@@ -70,7 +77,7 @@ export default function StatsScreen() {
       const currentStreak = calculateStreak(conversations)
       const bestStreak = currentStreak // For now, same as current
 
-      setStats({
+      const statsData = {
         totalSessions,
         totalMinutes,
         totalPoints,
@@ -79,7 +86,26 @@ export default function StatsScreen() {
         favoriteSubject,
         currentStreak,
         bestStreak,
+      }
+
+      setStats(statsData)
+
+      // Calculate achievements
+      const earned = calculateEarnedAchievements({
+        totalSessions,
+        totalMinutes,
+        totalPoints,
+        currentStreak,
       })
+      setEarnedAchievements(earned)
+
+      const next = getNextAchievements({
+        totalSessions,
+        totalMinutes,
+        totalPoints,
+        currentStreak,
+      })
+      setNextAchievements(next)
     } catch (error) {
       console.error('Failed to load stats:', error)
     } finally {
@@ -205,6 +231,62 @@ export default function StatsScreen() {
         </Card>
       </View>
 
+      {/* Achievements */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          Achievements ({earnedAchievements.length})
+        </Text>
+        {earnedAchievements.length > 0 ? (
+          <View style={styles.achievementsGrid}>
+            {earnedAchievements.slice(0, 8).map((achievement) => (
+              <Card key={achievement.id} variant="elevated" style={styles.achievementCard}>
+                <Text style={styles.achievementEmoji}>{achievement.emoji}</Text>
+                <Text style={styles.achievementName}>{achievement.name}</Text>
+              </Card>
+            ))}
+          </View>
+        ) : (
+          <Card variant="outlined" style={styles.emptyAchievements}>
+            <Text style={styles.emptyAchievementsText}>
+              Start learning to earn achievements! 🏆
+            </Text>
+          </Card>
+        )}
+
+        {earnedAchievements.length > 8 && (
+          <Text style={styles.achievementsMore}>
+            +{earnedAchievements.length - 8} more achievements
+          </Text>
+        )}
+
+        {/* Next Achievements */}
+        <Text style={styles.subsectionTitle}>Up Next</Text>
+        {nextAchievements
+          .filter((item) => item.next)
+          .slice(0, 3)
+          .map((item) => (
+            <Card key={item.category} variant="outlined" style={styles.nextAchievementCard}>
+              <View style={styles.nextAchievementHeader}>
+                <Text style={styles.nextAchievementEmoji}>{item.next.emoji}</Text>
+                <View style={styles.nextAchievementInfo}>
+                  <Text style={styles.nextAchievementName}>{item.next.name}</Text>
+                  <Text style={styles.nextAchievementDescription}>
+                    {item.next.description}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.progressBar}>
+                <View
+                  style={[styles.progressFill, { width: `${item.progress}%` }]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {Math.round(item.progress)}% complete
+              </Text>
+            </Card>
+          ))}
+      </View>
+
       {/* Recent Activity */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Sessions</Text>
@@ -326,5 +408,93 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: colors.textLight,
+  },
+  achievementsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  achievementCard: {
+    width: '22%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  achievementEmoji: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  achievementName: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  emptyAchievements: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyAchievementsText: {
+    fontSize: 14,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  achievementsMore: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  nextAchievementCard: {
+    marginBottom: 12,
+    padding: 16,
+  },
+  nextAchievementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  nextAchievementEmoji: {
+    fontSize: 40,
+  },
+  nextAchievementInfo: {
+    flex: 1,
+  },
+  nextAchievementName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  nextAchievementDescription: {
+    fontSize: 12,
+    color: colors.textLight,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'right',
   },
 })
